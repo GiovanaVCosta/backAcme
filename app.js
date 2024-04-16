@@ -1,0 +1,133 @@
+
+
+//app importa funcoes
+
+
+/******************************************************
+* Objetivo: Arquivo para realizar as requisições      *                                                                              
+* Data: 30/01/24                                      *                                                                            
+* Autor: Giovana Vieira                               *
+* Versão: 1.0                                         *                                                                                          
+******************************************************/
+
+
+const express = require('express')
+const cors = require('cors')
+const bodyParser = require('body-parser')
+
+const app = express();
+
+app.use((request,response,next) =>{
+    response.header('Acess-Control-Allow-Origin','*');
+    response.header('Acess-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    app.use(cors())
+    
+    next();
+});
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    // Import dos arquivos da controller do projeto 
+    const controllerFilmes = require ('./controller/controller_filme.js');
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+// Criando um objeto para controlar a chegada dos dados da requisição em formato JSON 
+const bodyParserJson = bodyParser.json();
+
+
+
+//EndPoint : Versão 2.0 - retorna todos os filmes do Banco de Dados 
+app.get('/v2/acmefilmes/filmes', cors(),async function (request,response,next){
+
+    // chama a função da controller para retornar os filmes;
+    let dadosFilmes = await controllerFilmes.getListarFilmes();
+
+    // validação para retornar o Json dos filmes ou retornar o erro 404;
+    if(dadosFilmes){
+        response.json(dadosFilmes);
+        response.status(200);
+    }else{
+        response.json({message: 'Nenhum registro foi encontrado'});
+        response.status(404);
+    }
+});
+
+app.get('/v1/acmefilmes/filmeNome', cors(), async function(request,response,next){
+
+    let nomeFilme = request.query.nome
+    let filmeNome = await controllerFilmes.getBuscarFilmeNome(nomeFilme)
+
+        response.json(filmeNome);
+        response.status(filmeNome.status_code)
+} )
+
+// endPoint: retorna o filme filtrano pelo ID
+app.get('/v2/acmefilmes/filme/:id', cors(), async function(request,response,next){
+
+    // recebe o id da requisição
+    let idFilme = request.params.id
+
+    //encaminha o id para a acontroller buscar o filme
+    let dadosFilme = await controllerFilmes.getBuscarFilme(idFilme);
+
+    response.status(dadosFilme.status_code);
+    response.json(dadosFilme);
+})
+
+
+// primeiro end point usando POST 
+app.post('/v2/acmefilmes/filme', cors(), bodyParserJson, async function (request, response,next ){
+
+//  Api reebe o content-tye (API DEVE RECEBER SOMENTE application/json)
+    let contentType = request.headers['content-type'];
+    
+
+    // recebe o que chegar no corpo da requisição e guardar nessa variável local
+    let dadosBody = request.body;
+    // encaminha os dados para a controller enviar para o DAO
+    let resultDadosNovoFilme = await controllerFilmes.setInserirNovoFilme(dadosBody, contentType);
+
+
+    response.status(resultDadosNovoFilme.status_code);
+    response.json(resultDadosNovoFilme);
+
+} )
+
+app.delete('/v1/AcmeBack/deleteFilme/:id', cors (), async function (request,response,next){
+
+    let idFilme = request.params.id
+
+    let dadosFilme = await controllerFilmes.setExcluirFilme(idFilme);
+
+    response.status(dadosFilme.status_code);
+    response.json(dadosFilme);
+})
+
+app.get('/v2/acmefilmes/genero', cors(), async function(request, response) {
+
+    let dadosGeneros = await controllerGeneros.getListarGeneros()
+
+    response.status(dadosGeneros.status_code)
+
+    response.json(dadosGeneros)
+})
+app.get('/v2/acmefilmes/genero/:id', cors(), async function(request, response) {
+
+    let idGenero = request.params.id
+
+    let dadosGenero = await controllerGeneros.getBuscarGenero(idGenero)
+
+    response.status(dadosGenero.status_code)
+
+    response.json(dadosGenero)
+})
+
+
+
+
+app.listen('8080', function(){
+    console.log('API FUNCIONANDO')
+})
